@@ -2,7 +2,7 @@ import numpy as np
 import math
 from sim_functions import transform_map_to_rob
 import scipy.stats
-
+# hi
 class Robot:
     def __init__(self):
 
