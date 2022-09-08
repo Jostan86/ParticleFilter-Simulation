@@ -50,7 +50,7 @@ class Robot:
         # self.speed = self.speed_default  # m/s
         # self.turn_speed = self.turn_speed_default  # rad/s - full turn in 8 seconds
     #edit
-    def reset(self, tree_spacing, row_width):
+    def reset(self):
         # Reset the particles
         x_particles_center = self.tree_spacing * 1.5
         y_particles_center = self.row_width * 0.5
@@ -87,10 +87,14 @@ class Robot:
 
             # Narrow down the trees to check if the particle can see based on their general proximity to the particle,
             # takes all trees in a square around the particle with side edges the length of the sensor range
-            tree_locs_close = tree_locs[:, tree_locs[0, :] > particle_x - self.sensor_range]
-            tree_locs_close = tree_locs_close[:, tree_locs_close[0, :] < particle_x + self.sensor_range]
-            tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] > particle_y - self.sensor_range]
-            tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] < particle_y + self.sensor_range]
+            # tree_locs_close = tree_locs[:, tree_locs[0, :] > particle_x - self.sensor_range]
+            # tree_locs_close = tree_locs_close[:, tree_locs_close[0, :] < particle_x + self.sensor_range]
+            # tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] > particle_y - self.sensor_range]
+            # tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] < particle_y + self.sensor_range]
+            tree_locs_close = tree_locs[:, np.logical_and(tree_locs[0, :] > particle_x - self.sensor_range,
+                                                          tree_locs[0, :] < particle_x + self.sensor_range)]
+            tree_locs_close = tree_locs_close[:, np.logical_and(tree_locs_close[1, :] > particle_y - self.sensor_range,
+                                                                tree_locs_close[1, :] < particle_y + self.sensor_range)]
 
             # Reset lists of seen trees
             x_rel_particle_list = []
