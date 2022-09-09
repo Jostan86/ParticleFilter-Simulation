@@ -131,7 +131,7 @@ class Robot:
 
             # Factor to determine how much weight to give to unmatched trees and the min distance to consider a tree
             # seen by the particle and a tree seen by the robot to be a match
-            weight_factor = 0.75
+            weight_factor = 1
 
             # If neither the particle nor the robot saw a tree then the probability proxy is set to 2
             if num_trees_particle_would_see == 0 and num_trees_sensed == 0:
@@ -163,39 +163,12 @@ class Robot:
                         distance[:, min_index[1]] = 100
                     except IndexError:
                         pass
-                #
-                # # Make boolean lists to record which trees have been used
-                # sensed_trees_unused = [True for p in range(num_trees_sensed)]
-                #
-                # # For each tree the particle saw
-                # for j in range(num_trees_particle_would_see):
-                #     # Give it a baseline weight, which will be used if it doesn't get matched
-                #     distance_particle_tree_sensed_tree = weight_factor
-                #     # Variable to record the index of the tree that is matched  to this one
-                #     used_tree_index = None
-                #     # Loop through each tree the robot saw...
-                #     for k in range(num_trees_sensed):
-                #         # Calculate the distance between the current particle tree and robot sensor tree
-                #         distance = math.sqrt((x_rel_particle_list[j] - self.x_seen_tree_list_sensor[k]) ** 2 +
-                #                              (y_rel_particle_list[j] - self.y_seen_tree_list_sensor[k]) ** 2)
-                #
-                #
-                #
+
                 #         # z_score = abs((width_trees_particle_sees[j] - self.width_seen_trees[k]) / self.tree_width_accuracy)
                 #         # width_weight = scipy.stats.norm.sf(z_score)
                 #         # distance = distance * (1-width_weight)
                 #         # distance = distance * z_score/5
-                #         # If the distance between the 2 is less than the current value, then keep it and record which
-                #         # tree it matched to
-                #         if distance < distance_particle_tree_sensed_tree:
-                #             distance_particle_tree_sensed_tree = distance
-                #             used_tree_index = k
-                #     # If a match was found, record which tree it was that was used
-                #     if used_tree_index is not None:
-                #         sensed_trees_unused[used_tree_index] = False
-                #     # Add this distance to the distance sum
-                #     distance_sum += distance_particle_tree_sensed_tree
-                # Add any unmatched trees to the distance sum
+
                 distance_sum += abs(num_trees_sensed - num_trees_particle_would_see)*weight_factor
 
             # Add this particle's distance to the list of all the distances
@@ -212,8 +185,8 @@ class Robot:
         probabilites_histo = np.zeros(len(probabilites))
         # Make the list
         probabilites_sum = 0
-        for i in range(len(probabilites)):
-            probabilites_sum += probabilites[i]
+        for i, probability in enumerate(probabilites):
+            probabilites_sum += probability
             probabilites_histo[i] = probabilites_sum
 
         # Make an array of the new particles
@@ -221,6 +194,7 @@ class Robot:
 
         # Set initial value for the probability index
         probability_index = 0
+
         # Make an array to use for resampling
         probability_values = np.linspace(0, 1, self.particles.shape[0]+1)
 
