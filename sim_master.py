@@ -660,9 +660,9 @@ class HorizontalSliderLayout:
             self.num_steps = 1000
             # Record what the values each position of the slider correspond to, so the slider value is used as an index
             # to get the actual value from this list
-            for i in range(self.num_steps+1):
-                self.values.append(self.value_range[0] + (self.value_range[1] - self.value_range[0]) *
-                                   (i / self.num_steps))
+
+            self.values = self.value_range[0] + (self.value_range[1] - self.value_range[0]) * \
+                         (np.arange(0, self.num_steps + 1) / self.num_steps)
             # Set the slider min and max
             self.slider.setMinimum(0)
             self.slider.setMaximum(self.num_steps)

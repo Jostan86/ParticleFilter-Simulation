@@ -79,18 +79,15 @@ class Robot:
 
         # Loop through each particle and find the trees it would see, then compare that to the trees the actual robot
         # sees and update the probability accordingly
-        for i in range(len(self.particles)):
+        for i, (particle_x, particle_y, particle_angle) in enumerate(zip(self.particles[:, 0], self.particles[:, 1],
+                                                                         self.particles[:, 2])):
             # Record particle pose
-            particle_x = self.particles[i, 0]
-            particle_y = self.particles[i, 1]
-            particle_angle = self.particles[i, 2]
+            # particle_x = self.particles[i, 0]
+            # particle_y = self.particles[i, 1]
+            # particle_angle = self.particles[i, 2]
 
             # Narrow down the trees to check if the particle can see based on their general proximity to the particle,
             # takes all trees in a square around the particle with side edges the length of the sensor range
-            # tree_locs_close = tree_locs[:, tree_locs[0, :] > particle_x - self.sensor_range]
-            # tree_locs_close = tree_locs_close[:, tree_locs_close[0, :] < particle_x + self.sensor_range]
-            # tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] > particle_y - self.sensor_range]
-            # tree_locs_close = tree_locs_close[:, tree_locs_close[1, :] < particle_y + self.sensor_range]
             tree_locs_close = tree_locs[:, np.logical_and(tree_locs[0, :] > particle_x - self.sensor_range,
                                                           tree_locs[0, :] < particle_x + self.sensor_range)]
             tree_locs_close = tree_locs_close[:, np.logical_and(tree_locs_close[1, :] > particle_y - self.sensor_range,
@@ -101,33 +98,28 @@ class Robot:
             y_rel_particle_list = []
             width_trees_particle_sees = []
 
-            # If there are trees around the particle...
-            if tree_locs_close.shape[1] > 0:
+            # Loop through each tree and check if it's in the particle's sensor's field of view
+            for x, y, width in zip(tree_locs_close[0, :], tree_locs_close[1, :], tree_locs_close[2, :]):
 
-                # Loop through each tree and check if it's in the particle's sensor's field of view
-                for j in range(tree_locs_close.shape[1]):
-                    # Record the tree's x and y position and the width
-                    x = tree_locs_close[0, j]
-                    y = tree_locs_close[1, j]
-                    width = tree_locs_close[2, j]
-                    # Find the tree position relative to the particle, if the forward direction is the +x axis and using
-                    # a left hand axis
-                    point_rel_particle = transform_map_to_rob(np.array([particle_x, particle_y]),
-                                                                   np.array([x, y]), particle_angle)
-                    # Record the x and y position relative to the particle
-                    x_rel_particle = point_rel_particle[0, 0]
-                    y_rel_particle = point_rel_particle[1, 0]
+                # Find the tree position relative to the particle, if the forward direction is the +x axis and using
+                # a left hand axis
+                point_rel_particle = transform_map_to_rob(np.array([particle_x, particle_y]),
+                                                               np.array([x, y]), particle_angle)
 
-                    # Calculate the angle of the tree relative to the particle
-                    tree_angle_rel_particle = math.atan2(y_rel_particle, x_rel_particle)
-                    tree_distance_from_particle = np.sqrt(y_rel_particle ** 2 + x_rel_particle ** 2)
+                # Record the x and y position relative to the particle
+                x_rel_particle = point_rel_particle[0, 0]
+                y_rel_particle = point_rel_particle[1, 0]
 
-                    # If the tree is in the field of view of the particle's sensor, then record it as a seen tree
-                    if np.pi/2 - np.radians(self.field_of_view) / 2 < tree_angle_rel_particle < np.pi/2 + \
-                            np.radians(self.field_of_view) / 2 and tree_distance_from_particle < self.sensor_range:
-                        x_rel_particle_list.append(x_rel_particle)
-                        y_rel_particle_list.append(y_rel_particle)
-                        width_trees_particle_sees.append(width)
+                # Calculate the angle of the tree relative to the particle
+                tree_angle_rel_particle = math.atan2(y_rel_particle, x_rel_particle)
+                tree_distance_from_particle = np.sqrt(y_rel_particle ** 2 + x_rel_particle ** 2)
+
+                # If the tree is in the field of view of the particle's sensor, then record it as a seen tree
+                if np.pi/2 - np.radians(self.field_of_view) / 2 < tree_angle_rel_particle < np.pi/2 + \
+                        np.radians(self.field_of_view) / 2 and tree_distance_from_particle < self.sensor_range:
+                    x_rel_particle_list.append(x_rel_particle)
+                    y_rel_particle_list.append(y_rel_particle)
+                    width_trees_particle_sees.append(width)
 
             # Record the number of trees the particle sees and the number of trees the robot sees
             num_trees_particle_would_see = len(x_rel_particle_list)
