@@ -181,39 +181,35 @@ class Robot:
 
         # Normalize the probabilities
         probabilites = distance_sum_list2 * (1 / distance_sum_list2.sum())
-        # Initialize a list where each element will store the sum of all the previous elements
-        probabilites_histo = np.zeros(len(probabilites))
+
         # Make the list
         probabilites_sum = 0
-        for i, probability in enumerate(probabilites):
-            probabilites_sum += probability
-            probabilites_histo[i] = probabilites_sum
+
+        rand_values = np.sort(np.random.rand(self.num_particle))
 
         # Make an array of the new particles
         new_particles = np.zeros(self.particles.shape)
 
-        # Set initial value for the probability index
-        probability_index = 0
+        p_cnt = 0
+        for i, (probability, old_particle) in enumerate(zip(probabilites, self.particles)):
+            probabilites_sum += probability
 
-        # Make an array to use for resampling
-        probability_values = np.linspace(0, 1, self.particles.shape[0]+1)
+            # probabilites_histo[i] = probabilites_sum
+            while rand_values[p_cnt] < probabilites_sum and p_cnt < self.num_particle-1:
 
-        # Make the new particles
-        for i in range(self.particles.shape[0]):
+                new_particles[p_cnt, :] = old_particle
 
-            # Resample particle
-            while (probability_values[i] + probability_values[i+1]) /2 >= probabilites_histo[probability_index]:
-                probability_index += 1
-            new_particles[i, :] = self.particles[probability_index, :]
+                new_particles[p_cnt, 2] = new_particles[p_cnt, 2] + np.random.normal(angular_distance, np.radians(5))
+                new_particles[p_cnt, 0] = new_particles[p_cnt, 0] + np.cos(new_particles[p_cnt, 2]) * \
+                                          np.random.normal(move_distance, move_distance * self.particle_movement_noise)
+                new_particles[p_cnt, 1] = new_particles[p_cnt, 1] + np.sin(new_particles[p_cnt, 2]) * \
+                                          np.random.normal(move_distance, move_distance * self.particle_movement_noise)
 
-            # Move particle according to process model, plus noise
-            new_particles[i, 2] = new_particles[i, 2] + np.random.normal(angular_distance, np.radians(5))
-            new_particles[i, 0] = new_particles[i, 0] + np.cos(new_particles[i, 2]) * \
-                                  np.random.normal(move_distance, move_distance * self.particle_movement_noise)
-            new_particles[i, 1] = new_particles[i, 1] + np.sin(new_particles[i, 2]) * \
-                                  np.random.normal(move_distance, move_distance * self.particle_movement_noise)
+                p_cnt += 1
 
-        # Save new particles
+
         self.particles = new_particles[:]
+
+
 
 
