@@ -145,12 +145,9 @@ class Robot:
             # their probability depends on how far apart the matched trees are.
             # A weighting for the width should probably be added here
             else:
-
-                j_full, k_full = np.meshgrid(np.arange(len(x_rel_particle_list)), np.arange(len(self.x_seen_tree_list_sensor)))
-                distance = np.zeros(j_full.shape)
-                for j, k in zip(np.nditer(j_full), np.nditer(k_full)):
-                    distance[k, j] = math.sqrt((x_rel_particle_list[j] - self.x_seen_tree_list_sensor[k]) ** 2 +
-                                               (y_rel_particle_list[j] - self.y_seen_tree_list_sensor[k]) ** 2)
+                xp_grid, xs_grid = np.meshgrid(x_rel_particle_list, self.x_seen_tree_list_sensor)
+                yp_grid, ys_grid = np.meshgrid(y_rel_particle_list, self.y_seen_tree_list_sensor)
+                distance = ((xp_grid - xs_grid) ** 2 + (yp_grid - ys_grid) ** 2) ** 0.5
 
                 for p in range(min([num_trees_particle_would_see, num_trees_sensed])):
                     min_index = np.unravel_index(distance.argmin(), distance.shape)
@@ -176,6 +173,7 @@ class Robot:
 
         # Invert the distance sum list so that higher values are bad, add a small number to give a baseline probability
         # and avoid dividing by zero
+        # change jostan ~22
         distance_sum_list2 = 1 / (distance_sum_list + 0.00001)
         # distance_sum_list2 = 1 / distance_sum_list
 
@@ -191,10 +189,11 @@ class Robot:
         new_particles = np.zeros(self.particles.shape)
 
         p_cnt = 0
+
+        # change jostan maybe ~35
         for i, (probability, old_particle) in enumerate(zip(probabilites, self.particles)):
             probabilites_sum += probability
 
-            # probabilites_histo[i] = probabilites_sum
             while rand_values[p_cnt] < probabilites_sum and p_cnt < self.num_particle-1:
 
                 new_particles[p_cnt, :] = old_particle
