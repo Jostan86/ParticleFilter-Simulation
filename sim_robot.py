@@ -27,7 +27,7 @@ class Robot:
         # List to store the positions of the seen trees relative to the map
         self.x_seen_tree_list_sensor = []
         self.y_seen_tree_list_sensor = []
-        self.width_seen_trees = []
+        self.widths_of_sensed_trees = []
 
         # Create variable for robot's FOV and sensor range
         self.field_of_view = None  # rad
@@ -81,10 +81,6 @@ class Robot:
         # sees and update the probability accordingly
         for i, (particle_x, particle_y, particle_angle) in enumerate(zip(self.particles[:, 0], self.particles[:, 1],
                                                                          self.particles[:, 2])):
-            # Record particle pose
-            # particle_x = self.particles[i, 0]
-            # particle_y = self.particles[i, 1]
-            # particle_angle = self.particles[i, 2]
 
             # Narrow down the trees to check if the particle can see based on their general proximity to the particle,
             # takes all trees in a square around the particle with side edges the length of the sensor range
@@ -96,9 +92,9 @@ class Robot:
             # Reset lists of seen trees
             x_rel_particle_list = []
             y_rel_particle_list = []
-            width_trees_particle_sees = []
+            widths_of_trees_particle_senses = []
 
-            # Loop through each tree and check if it's in the particle's sensor's field of view
+            # Loop through each close tree and check if it's in the particle's sensor's field of view
             for x, y, width in zip(tree_locs_close[0, :], tree_locs_close[1, :], tree_locs_close[2, :]):
 
                 # Find the tree position relative to the particle, if the forward direction is the +x axis and using
@@ -119,7 +115,7 @@ class Robot:
                         np.radians(self.field_of_view) / 2 and tree_distance_from_particle < self.sensor_range:
                     x_rel_particle_list.append(x_rel_particle)
                     y_rel_particle_list.append(y_rel_particle)
-                    width_trees_particle_sees.append(width)
+                    widths_of_trees_particle_senses.append(width)
 
             # Record the number of trees the particle sees and the number of trees the robot sees
             num_trees_particle_would_see = len(x_rel_particle_list)
@@ -147,24 +143,22 @@ class Robot:
             else:
                 xp_grid, xs_grid = np.meshgrid(x_rel_particle_list, self.x_seen_tree_list_sensor)
                 yp_grid, ys_grid = np.meshgrid(y_rel_particle_list, self.y_seen_tree_list_sensor)
-                distance = ((xp_grid - xs_grid) ** 2 + (yp_grid - ys_grid) ** 2) ** 0.5
+                wp_grid, ws_grid = np.meshgrid(widths_of_trees_particle_senses, self.widths_of_sensed_trees)
+                distances = ((xp_grid - xs_grid) ** 2 + (yp_grid - ys_grid) ** 2) ** 0.5
+                width_differences = wp_grid - ws_grid
+
+                # for idw, width_difference in np.ndenumerate(width_differences):
+                #     if abs(width_difference) > 2:
+                #         distances[idw] = 4
 
                 for p in range(min([num_trees_particle_would_see, num_trees_sensed])):
-                    min_index = np.unravel_index(distance.argmin(), distance.shape)
+                    min_index = np.unravel_index(distances.argmin(), distances.shape)
+                    distance_sum += distances[min_index]
+                    distances[min_index[0], :] = 100
                     try:
-                        distance_sum += distance[min_index[0], min_index[1]]
-                    except IndexError:
-                        distance_sum += distance[min_index]
-                    distance[min_index[0], :] = 100
-                    try:
-                        distance[:, min_index[1]] = 100
+                        distances[:, min_index[1]] = 100
                     except IndexError:
                         pass
-
-                #         # z_score = abs((width_trees_particle_sees[j] - self.width_seen_trees[k]) / self.tree_width_accuracy)
-                #         # width_weight = scipy.stats.norm.sf(z_score)
-                #         # distance = distance * (1-width_weight)
-                #         # distance = distance * z_score/5
 
                 distance_sum += abs(num_trees_sensed - num_trees_particle_would_see)*weight_factor
 
@@ -174,7 +168,9 @@ class Robot:
         # Invert the distance sum list so that higher values are bad, add a small number to give a baseline probability
         # and avoid dividing by zero
         # change jostan ~22
-        distance_sum_list2 = 1 / (distance_sum_list + 0.00001)
+        # distance_sum_list2 = 1 / (distance_sum_list + 0.00001)
+        # This inversion formula seems to make convergence more likely, but a bit slower, and the spread is larger
+        distance_sum_list2 = 4 / (distance_sum_list + 0.1)
         # distance_sum_list2 = 1 / distance_sum_list
 
         # Normalize the probabilities
@@ -185,29 +181,28 @@ class Robot:
 
         rand_values = np.sort(np.random.rand(self.num_particle))
 
-        # Make an array of the new particles
-        new_particles = np.zeros(self.particles.shape)
+        # Save the old particles
+        old_particles = np.copy(self.particles)
+        p_count = 0
 
-        p_cnt = 0
-
-        # change jostan maybe ~35
-        for i, (probability, old_particle) in enumerate(zip(probabilites, self.particles)):
+        # Resample and move the particles
+        for i, (probability, old_particle) in enumerate(zip(probabilites, old_particles)):
             probabilites_sum += probability
 
-            while rand_values[p_cnt] < probabilites_sum and p_cnt < self.num_particle-1:
+            while rand_values[p_count] < probabilites_sum and p_count < self.num_particle-1:
 
-                new_particles[p_cnt, :] = old_particle
+                self.particles[p_count, :] = old_particle
 
-                new_particles[p_cnt, 2] = new_particles[p_cnt, 2] + np.random.normal(angular_distance, np.radians(5))
-                new_particles[p_cnt, 0] = new_particles[p_cnt, 0] + np.cos(new_particles[p_cnt, 2]) * \
-                                          np.random.normal(move_distance, move_distance * self.particle_movement_noise)
-                new_particles[p_cnt, 1] = new_particles[p_cnt, 1] + np.sin(new_particles[p_cnt, 2]) * \
-                                          np.random.normal(move_distance, move_distance * self.particle_movement_noise)
+                self.particles[p_count, 2] = self.particles[p_count, 2] + np.random.normal(angular_distance, np.radians(5))
+                self.particles[p_count, 0] = self.particles[p_count, 0] + np.cos(self.particles[p_count, 2]) * \
+                                            np.random.normal(move_distance, move_distance * self.particle_movement_noise)
+                self.particles[p_count, 1] = self.particles[p_count, 1] + np.sin(self.particles[p_count, 2]) * \
+                                            np.random.normal(move_distance, move_distance * self.particle_movement_noise)
 
-                p_cnt += 1
+                p_count += 1
 
 
-        self.particles = new_particles[:]
+
 
 
 

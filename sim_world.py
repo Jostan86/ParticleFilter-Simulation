@@ -31,7 +31,7 @@ class World:
         self.y_seen_tree_list_rob = []
         self.x_seen_tree_list_map = []
         self.y_seen_tree_list_map = []
-        self.width_seen_tree_list = []
+        self.widths_of_sensed_trees = []
 
         # Standard deviation for tree width measurement
         self.tree_width_accuracy = 0.3
@@ -267,7 +267,7 @@ class World:
         # sensor reading and then moved forward, then repeat
         self.robot.x_seen_tree_list_sensor = self.x_seen_tree_list_rob
         self.robot.y_seen_tree_list_sensor = self.y_seen_tree_list_rob
-        self.robot.width_seen_trees = self.width_seen_tree_list
+        self.robot.widths_of_sensed_trees = self.widths_of_sensed_trees
 
         # Array of tree locations and tree widths
         tree_locs = np.array([self.xs_trees, self.ys_trees, self.width_trees])
@@ -284,7 +284,7 @@ class World:
         self.y_seen_tree_list_rob = []
         self.x_seen_tree_list_map = []
         self.y_seen_tree_list_map = []
-        self.width_seen_tree_list = []
+        self.widths_of_sensed_trees = []
 
         # If there are trees around the robot...
         if tree_locs_close.shape[1] > 0:
@@ -296,7 +296,7 @@ class World:
                 # otherwise trees in the FOV could be seen as outside the FOV
                 x_rel_map = tree_locs_close[0, j] + np.random.normal(0, self.location_sensor_accuracy)
                 y_rel_map = tree_locs_close[1, j] + np.random.normal(0, self.location_sensor_accuracy)
-                tree_width_sensor = tree_locs_close[1, j] + np.random.normal(0, self.tree_width_accuracy)
+                tree_width_sensor = tree_locs_close[2, j] + np.random.normal(0, self.tree_width_accuracy)
 
                 # Find the tree position relative to the robot, if the forward direction is the +x axis and using a left
                 # hand axis
@@ -317,7 +317,7 @@ class World:
                     # Record the seen trees
                     self.x_seen_tree_list_rob.append(x_rel_rob)
                     self.y_seen_tree_list_rob.append(y_rel_rob)
-                    self.width_seen_tree_list.append(tree_width_sensor)
+                    self.widths_of_sensed_trees.append(tree_width_sensor)
 
                     self.x_seen_tree_list_map.append(x_rel_map)
                     self.y_seen_tree_list_map.append(y_rel_map)
